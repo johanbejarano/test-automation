@@ -153,6 +153,7 @@ public class BankTransactionServiceImpl implements BankTransactionService {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
 	public TransactionResultDTO deposit(DepositDTO depositDTO) throws Exception {
+		
 		if (depositDTO == null) {
 			throw new Exception("El depositDTO es nulo");
 		}
@@ -174,7 +175,7 @@ public class BankTransactionServiceImpl implements BankTransactionService {
 		}
 
 		Account account = accountService.findById(depositDTO.getAccoId()).get();
-
+		
 		if (account.getEnable().trim().equals("N") == true) {
 			throw new ZMessManager().new AccountNotEnableException(depositDTO.getAccoId());
 		}
@@ -195,7 +196,6 @@ public class BankTransactionServiceImpl implements BankTransactionService {
 		transaction.setAccount(account);
 		transaction.setAmount(depositDTO.getAmount());
 		transaction.setDate(new Timestamp(System.currentTimeMillis()));
-		transaction.setTranId(null);
 		transaction.setTransactionType(transactionType);
 		transaction.setUsers(user);
 
@@ -206,8 +206,9 @@ public class BankTransactionServiceImpl implements BankTransactionService {
 		accountService.update(account);
 
 		TransactionResultDTO transactionResultDTO = new TransactionResultDTO(transaction.getTranId(), nuevoSaldo);
-
+		
 		return transactionResultDTO;
+		
 	}
 
 }
