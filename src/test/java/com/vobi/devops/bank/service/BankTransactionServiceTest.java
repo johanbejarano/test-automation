@@ -114,19 +114,57 @@ class BankTransactionServiceTest {
 		}
 		
 		@Test
-		void debeDepositar_debe_fallar_si_cantidad_es_negativo() throws Exception {
+		void debeDepositar_debe_fallar_si_cantidad_es_cero() throws Exception {
 			// Arrange
 			String accountId = "4640-0341-9387-5781";
-			DepositDTO depositDTO = new DepositDTO(accountId, -1d, "vondrusek1@wisc.edu");
-			String messageExpected = "El Amount es obligatorio y debe ser mayor que cero";
+			String userEmail = "vondrusek1@wisc.edu";
+			Double amount = 0d;
 
-			// Act
-			Exception exception = assertThrows(Exception.class, () -> {
-				bankTransactionService.deposit(depositDTO);
+			TransactionResultDTO transactionResultDTO = null;
+
+			DepositDTO depositDTO = new DepositDTO(accountId, amount, userEmail);
+
+			Account account = AccountBuilder.getAccount();
+			Users user = UsersBuilder.getUsers();
+			TransactionType transactionType = TransactionTypeBuilder.getTransactionTypeDeposit();
+
+			Double amountExpected = account.getBalance() + amount;
+
+			when(accountService.findById(accountId)).thenReturn(Optional.ofNullable(account));
+			when(userService.findById(userEmail)).thenReturn(Optional.ofNullable(user));
+			when(transactionTypeService.findById(2)).thenReturn(Optional.ofNullable(transactionType));
+
+			when(transactionService.save(any(Transaction.class))).then(new Answer<Transaction>() {
+				int sequence = 1;
+
+				@Override
+				public Transaction answer(InvocationOnMock invocation) throws Throwable {
+					Transaction transaction = invocation.getArgument(0);
+					transaction.setTranId(sequence);
+					
+					//Asegurar que se haya modificado los valores de la transacción
+					assertAll(
+						() -> assertEquals(transaction.getAccount(), account),
+						() -> assertEquals(transaction.getAmount(), amount),
+						() -> assertNotNull(transaction.getDate()),
+						() -> assertNotNull(transaction.getTransactionType()),
+						() -> assertNotNull(transaction.getUsers()),
+						() -> assertNotNull(transaction.getTranId())
+						);
+					
+					
+					return transaction;
+				}
+
 			});
+			
+			when(accountService.update(any(Account.class))).thenReturn(account);
+
+			transactionResultDTO = bankTransactionService.deposit(depositDTO);
 
 			// Assert
-			assertEquals(messageExpected, exception.getMessage());
+			
+			assertEquals(amountExpected, transactionResultDTO.getBalance());
 			
 		}
 		
